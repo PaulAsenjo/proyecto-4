@@ -10,7 +10,9 @@ app.get('/', (req, res) => {
     res.send('Hola mundo');
   });
 
-
+app.get('/usuarios',(req,res) => {
+  res.send('otra cosa')
+})
 
 //Ruta GET 
 app.get('/productos', (req, res) => {
