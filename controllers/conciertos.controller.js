@@ -8,194 +8,271 @@ const rutaArchivoBase = './models/basedeconciertos.json';
 
 //GET 
 const obtenerConciertos = (req, res) => {
+    try {
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
-
-    res.send({
+        res.status(200).send({
         mensaje:"Conciertos disponibles",
         conciertos: conciertos
-    })
-}
+        });
+
+    } catch(error) {
+        console.error(error);
+        res.status(500).send({mensaje:'Error al obtener los datos de conciertos'});
+
+    }
+};    
 
 
 //GET-ID
 const obtenerConciertoPorID = (req, res) => {
-    const id = req.params.id;
+    try {
+        const id = req.params.id;
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const concierto = conciertos.find((conc) => conc.id == id);
 
-    const concierto = conciertos.find((conc) => conc.id == id)
+        if (concierto) {
+            res.status(200).send({
+                mensaje: "Concierto encontrado",
+                concierto: concierto
+            });
+        } else {
+            res.status(404).send({
+                mensaje: "Concierto no encontrado"
+            });
+        };
 
-    if (concierto) {
-      res.send({
-        mensaje: "Concierto encontrado",
-        concierto: concierto
-      })
-    } else {
-      res.send({
-        mensaje:"Concierto no encontrado"
-      })  
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al buscar el concierto por ID' });
     }
-}
+};
 
 
 //POST
  const crearConcierto = (req, res) => {
-    const datosConcierto = req.body
-    const id = v4();
+    try {
+        const datosConcierto = req.body
+        const id = v4();
 
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-    conciertos.push({id: id, ...datosConcierto})
+        conciertos.push({id: id, ...datosConcierto})
 
-    fs.writeFileSync(rutaArchivoBase, JSON.stringify(conciertos));
+        fs.writeFileSync(rutaArchivoBase, JSON.stringify(conciertos));
+       
+        res.status(201).send({
+            mensaje: "Concierto creado exitosamente",
+            concierto: {
+                id: id,
+                ...datosConcierto
+            }
+        });
 
-    res.send({
-        mensaje: "Concierto creado",
-        concierto: {
-            id: id,
-            ...datosConcierto
-        }
-    })
-}
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al crear el concierto' });
+    }
+};
 
 
 //DELETE
 const eliminarConcierto = (req, res) => {
-    const id = req.params.id;
+     try {
+        const id = req.params.id;
 
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-    const nuevoArregloDeConciertosSinEliminado = conciertos.filter((conc) => conc.id != id);
+        const nuevoArregloDeConciertosSinEliminado = conciertos.filter((conc) => conc.id != id);
 
-    fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloDeConciertosSinEliminado));
+        if (nuevoArregloDeConciertosSinEliminado.length === conciertos.length) {
+            return res.status(404).send({
+                mensaje: "Concierto no encontrado para eliminar"
+            });
+        };
 
-    res.send({
-        mensage: "Concierto eliminado",
-        id: id
-    })
-}
+        fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloDeConciertosSinEliminado));
+
+        res.status(200).send({
+            mensaje: "Concierto eliminado",
+            id: id
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al eliminar el concierto' });
+    }
+};
 
 
 //PUT
 const actualizarConcierto = (req, res) => {
-    const id = req.params.id;
-    const datosACambiar = req.body;
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+    try{
+        const id = req.params.id;
+        const datosACambiar = req.body;
 
-    const nuevoArregloConciertos = conciertos.map((conc) => {
-      if (conc.id == id) {
-        return {
-            ...conc,
-            ...datosACambiar
-        }
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+
+        const nuevoArregloConciertos = conciertos.map((conc) => {
+            if (conc.id == id) {
+                return { 
+                    ...conc, 
+                    ...datosACambiar };
+            }
+            return conc;
+        });
+
+        const conciertoActualizado = nuevoArregloConciertos.find((conc) => conc.id == id);
+
+        if (!conciertoActualizado) {
+            return res.status(404).send({
+                mensaje: "Concierto no encontrado para actualizar"
+            });
+        };
+
+        fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloConciertos));
+
+        res.status(200).send({
+            mensaje: "Concierto actualizado",
+            concierto: { 
+                id: id,
+                ...datosACambiar 
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al actualizar el concierto' });
     }
-    return conc;
-})
-
-    fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloConciertos));
-
-    res.send({
-      mensaje: "Concierto actualizado",
-      concierto: {
-         id: id,
-         ...datosACambiar
-      }
-    })
-}
+};
 
 
 //PATCH CANCELAR concierto
 const cancelarConcierto = (req, res) => {
-  const id = req.params.id;
-  const estadoACambiar = req.body;
-  const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+    try {
+        const id = req.params.id;
+        const estadoACambiar = req.body;
 
-  const nuevoArregloConciertos = conciertos.map((conc) => {
-    if (conc.id == id) {
-      return {
-          ...conc,
-          ...estadoACambiar
-      }
-  }
-  return conc;
-})
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-  fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloConciertos));
+        const nuevoArregloConciertos = conciertos.map((conc) => {
+            if (conc.id == id) {
+                return { 
+                    ...conc, 
+                    ...estadoACambiar 
+                };
+            }
+            return conc;
+        });
 
-  res.send({
-    mensaje: "Concierto CANCELADO",
-    concierto: {
-       id: id,
-       ...estadoACambiar
+        const conciertoCancelado = nuevoArregloConciertos.find((conc) => conc.id == id);
+
+        if (!conciertoCancelado) {
+            return res.status(404).send({
+                mensaje: "Concierto no encontrado para cancelar"
+            });
+        };
+
+        fs.writeFileSync(rutaArchivoBase, JSON.stringify(nuevoArregloConciertos));
+
+        res.status(200).send({
+            mensaje: "Concierto CANCELADO",
+            concierto: { 
+                id: id, 
+                ...estadoACambiar 
+            }
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al cancelar el concierto' });
     }
-  })
-}
+};
 
 
 //MÉTODOS PARA USUARIO
 
 //GET por género
 const obtenerConciertosPorGenero = (req, res) => {
-    const generoABuscar = req.params.genero
+    try {
+        const generoABuscar = req.params.genero;
 
-    const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-    const conciertosEncontrados = conciertos.filter((conc) => conc.genero === generoABuscar);
+        const conciertosEncontrados = conciertos.filter((conc) => conc.genero === generoABuscar);
 
-    if (conciertosEncontrados.length > 0) {
-        res.send({
-            mensaje: `Conciertos encontrados para el género ${generoABuscar}`,
-            conciertos: conciertosEncontrados
-        });
-    } else {
-        res.send({
-            mensaje: `No se encontraron conciertos para el género ${generoABuscar}`
-        });
+        if (conciertosEncontrados.length > 0) {
+            res.status(200).send({
+                mensaje: `Conciertos encontrados para el género ${generoABuscar}`,
+                conciertos: conciertosEncontrados
+            });
+        } else {
+            res.status(404).send({
+                mensaje: `No se encontraron conciertos para el género ${generoABuscar}`
+            });
+        };
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al obtener conciertos por género' });
     }
-};  
+};
+ 
 
 
 //GET por espacios inclusivos
 const obtenerConciertosPorEI = (req, res) => {
-  const inclusivoABuscar = req.params.inclusivo
+    try {
+        const inclusivoABuscar = req.params.inclusivo;
 
-  const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-  const conciertosEncontrados = conciertos.filter((conc) => conc.inclusivo === inclusivoABuscar);
+        const conciertosEncontrados = conciertos.filter((conc) => conc.inclusivo === inclusivoABuscar);
 
-  if (conciertosEncontrados.length > 0) {
-      res.send({
-          mensaje: `Conciertos encontrados con espacios inclusivos ${inclusivoABuscar}`,
-          conciertos: conciertosEncontrados
-      });
-  } else {
-      res.send({
-          mensaje: `No se encontraron conciertos con espacios inclusivos ${inclusivoABuscar}`
-      });
-  }
-}; 
+        if (conciertosEncontrados.length > 0) {
+            res.status(200).send({
+                mensaje: `Conciertos encontrados con espacios inclusivos ${inclusivoABuscar}`,
+                conciertos: conciertosEncontrados
+            });
+        } else {
+            res.status(404).send({
+                mensaje: `No se encontraron conciertos con espacios inclusivos ${inclusivoABuscar}`
+            });
+        };
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al obtener conciertos por espacios inclusivos' });
+    }
+};
 
 
 //GET por lugar
 const obtenerConciertosPorLugar = (req, res) => {
-  const porLugarABuscar = req.params.lugar
+    try {
+        const porLugarABuscar = req.params.lugar;
 
-  const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
+        const conciertos = JSON.parse(fs.readFileSync(rutaArchivoBase, 'utf-8'));
 
-  const conciertosEncontrados = conciertos.filter((conc) => conc.lugar === porLugarABuscar);
+        const conciertosEncontrados = conciertos.filter((conc) => conc.lugar === porLugarABuscar);
 
-  if (conciertosEncontrados.length > 0) {
-      res.send({
-          mensaje: `Conciertos encontrados en ${porLugarABuscar}`,
-          conciertos: conciertosEncontrados
-      });
-  } else {
-      res.send({
-          mensaje: `No se encontraron conciertos en ${porLugarABuscar}`
-      });
-  }
-}; 
+        if (conciertosEncontrados.length > 0) {
+            res.status(200).send({
+                mensaje: `Conciertos encontrados en ${porLugarABuscar}`,
+                conciertos: conciertosEncontrados
+            });
+        } else {
+            res.status(404).send({
+                mensaje: `No se encontraron conciertos en ${porLugarABuscar}`
+            });
+        };
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ mensaje: 'Error al obtener conciertos por lugar' });
+    }
+};
 
 
 //GET por fecha
@@ -225,6 +302,7 @@ const obtenerConciertosPorRangoDeFechas = (req, res) => {
               : `No se encontraron conciertos entre ${fechaInicio} y ${fechaFin}`,
           conciertos: conciertosEncontrados,
       });
+
   } catch (error) {
       console.error(error);
       res.status(500).send({ mensaje: 'Error al leer los datos de conciertos.' });
