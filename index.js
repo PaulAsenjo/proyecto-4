@@ -31,9 +31,7 @@ app.use(express.json());
 app.use('/conciertos', conciertosRouter);
 
 
-// app.get('/', (req, res) => {
-    // res.send('Hola amiguitos');
-  // });
+
 
 
 const port = process.env.PORT
